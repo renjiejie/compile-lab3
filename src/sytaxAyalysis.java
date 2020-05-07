@@ -86,20 +86,16 @@ public class sytaxAyalysis {
 						tree.add(parent);
 					
 						//语义操作
-
-						switch (Integer.parseInt(action.substring(1))) {
-						//P->D {P.nq = D.nq}
-						case 0:
+						int r_num = Integer.parseInt(action.substring(1));
+						if (r_num ==0){ //P->D {P.nq = D.nq}
 							Symbol P = new Symbol("P");
 							P.addAttribute("nq", symbolStack.pop().getAttribute("nq"));
 							symbolStack.add(P);
-							break;
-						case 1:
-							
-							break;
-						//B->B1 or B2 {B.nq  = B1.nq;backpatch(B1.falselist,B2.nq);
-						//B.truelist=merge(B1.truelist,B2.truelist);B.falselist=B2.falselist;}
-						case 2:
+						}else if(r_num==1){
+
+						}else if(r_num ==2){
+							//B->B1 or B2 {B.nq  = B1.nq;backpatch(B1.falselist,B2.nq);
+							//B.truelist=merge(B1.truelist,B2.truelist);B.falselist=B2.falselist;}
 							Symbol B2 = symbolStack.pop();
 							symbolStack.pop();
 							Symbol B1 = symbolStack.pop();
@@ -109,14 +105,13 @@ public class sytaxAyalysis {
 								intercode.get(j).backPatch(B2.getAttribute("nq"));
 							}
 							symbolStack.add(B);
-							break;
-						/***
-						 * S→ call id ( F) 
-						 * {S.nq = F,nq; 
-						 * n=0;
-						 * for q中的每个t do{gen(‘param’ t );n = n+1；}gen(‘call’ i d.addr‘,’  n);} 特殊处理
-						 */
-						case 11:
+						}else if(r_num==11){
+							/***
+							 * S→ call id ( F)
+							 * {S.nq = F,nq;
+							 * n=0;
+							 * for q中的每个t do{gen(‘param’ t );n = n+1；}gen(‘call’ i d.addr‘,’  n);} 特殊处理
+							 */
 							symbolStack.pop();
 							Symbol F = symbolStack.pop();
 							symbolStack.pop();
@@ -130,21 +125,19 @@ public class sytaxAyalysis {
 								gen("param "+q.poll(), intercode);
 							}
 							gen("call "+ id.getAttribute("addr")+","+n,intercode);
-							break;
-
+							symbolStack.add(S);
+						}else if(r_num==34){
 							//L->id [ E ] {L,nq = E.nq; L.array=lookup(id.lexeme);if L.array==null then error;
 							//             L.type=L.array.type.elem; L.offset = newtemp(); gen(L.offset=E.addr*L.type.width);}
-						case 34:
 							symbolStack.pop();
 							Symbol E = symbolStack.pop();
 							symbolStack.pop();
 							Symbol L1 = symbolStack.pop();
 							Symbol id = new Symbol("id");
-
-
+						}
+						else if(r_num==35){
 							// L->L [ E ] {L.nq = L1.nq; L.array = L1.array;L.type=L1.type.elem;t=newtemp();gen(t=E.addr*L.type.width);
 							// 						L.offset = newtemp(); gen(L.offset= L1.offset+t);}
-						case 35:
 							symbolStack.pop();
 							Symbol E = symbolStack.pop();
 							symbolStack.pop();
@@ -155,14 +148,10 @@ public class sytaxAyalysis {
 							gen("t"+localVarNumber+"="+E.getAttribute("addr")+"*"+getTypeWidth(L1.getAttribute("type"))
 								,intercode);
 							localVarNumber++;
-							int t = Integer.parseInt(E.getAttribute("addr")) * getTypeWidth(L1.getAttribute("type");
+							int t = Integer.parseInt(E.getAttribute("addr")) * getTypeWidth(L1.getAttribute("type"));
 							gen("t"+localVarNumber+"="+L1.getAttribute("offset")+t, intercode);
 							localVarNumber++;
 							symbolStack.add(L);
-
-							default:
-							
-							break;
 						}
 					}
 					else {
