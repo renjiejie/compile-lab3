@@ -30,6 +30,7 @@ public class SymbolItem {
         return offset;
     }
 
+
     @Override
     public String toString() {
         return "<" + identifier + ", " + type + ", " + position + ", " + offset + ">";

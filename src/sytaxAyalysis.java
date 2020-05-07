@@ -24,7 +24,7 @@ public class sytaxAyalysis {
 		String[][] slrTable = ReadTableFile.readSLRTable("src/data/SLRTable.xls");		//slr表
 		List<Token> tokens = new LexicalAnalysis().lexicalAnaly(); //词法分析得出的token序列
 		List<Symbol> symbols = tokenToSymbol(tokens);
-		List<InterCode> intercode = new ArrayList<InterCode>(); //中间代码
+		List<InterCode> intercode = new ArrayList<InterCode>(); //中间代码, 从1号开始
 		List<SymbolItem> symbolItem = new ArrayList<SymbolItem>();  //符号表
 		int localVarNumber = 0;  //记录当前生成了多少个临时变量，一个 newtemp（）生成一个临时变量，
 		                         // 所以在使用临时变量在三元式中时名字不重复
@@ -90,7 +90,7 @@ public class sytaxAyalysis {
 						if (r_num ==0){ //P->D {P.nq = D.nq}
 							Symbol P = new Symbol("P");
 							P.addAttribute("nq", symbolStack.pop().getAttribute("nq"));
-							symbolStack.add(P);
+							symbolStack.push(P);
 						}else if(r_num==1){
 
 						}else if(r_num ==2){
@@ -104,7 +104,7 @@ public class sytaxAyalysis {
 							for(int j:B1.getFalseList()) {
 								intercode.get(j).backPatch(B2.getAttribute("nq"));
 							}
-							symbolStack.add(B);
+							symbolStack.push(B);
 						}else if(r_num==11){
 							/***
 							 * S→ call id ( F)
@@ -125,15 +125,56 @@ public class sytaxAyalysis {
 								gen("param "+q.poll(), intercode);
 							}
 							gen("call "+ id.getAttribute("addr")+","+n,intercode);
-							symbolStack.add(S);
+							symbolStack.push(S);
+						} else if(r_num==32){
+							//X->int {X.nq = nextquad; X.type=int;X.width=4;}
+							symbolStack.pop();
+							Symbol X = new Symbol("X");
+							X.addAttribute("nq", String.valueOf(intercode.size()+1));
+							X.addAttribute("type", "int");
+							X.addAttribute("width", String.valueOf(4));
+							symbolStack.push(X);
+						} else if(r_num==33){
+							//X->char {X.nq = nextquad; X.type=char;X.width=4;}
+							symbolStack.pop();
+							Symbol X = new Symbol("X");
+							X.addAttribute("nq", String.valueOf(intercode.size()+1));
+							X.addAttribute("type", "char");
+							X.addAttribute("width", String.valueOf(4));
+							symbolStack.push(X);
 						}else if(r_num==34){
-							//L->id [ E ] {L,nq = E.nq; L.array=lookup(id.lexeme);if L.array==null then error;
+							//L->id [ E ] {L.nq = E.nq; L.array=lookup(id.lexeme);if L.array==null then error;
 							//             L.type=L.array.type.elem; L.offset = newtemp(); gen(L.offset=E.addr*L.type.width);}
 							symbolStack.pop();
 							Symbol E = symbolStack.pop();
 							symbolStack.pop();
-							Symbol L1 = symbolStack.pop();
-							Symbol id = new Symbol("id");
+							Symbol id = symbolStack.pop();
+							Symbol L = new Symbol("L");
+
+							SymbolItem symbolItem1 = null;
+							for (SymbolItem oneSymbolItem : symbolItem){
+								if (oneSymbolItem.getIdentifier().equals(id.getAttribute("lexeme"))){
+									symbolItem1 = oneSymbolItem;
+								}
+							}
+
+							if (symbolItem1==null){
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
+									+id.getAttribute("lexeme")+" not defined";
+								System.out.println(errorMessage);
+							} else if (!symbolItem1.getType().contains("]")) {
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
+									+id.getAttribute("lexeme")+" type error";
+								System.out.println(errorMessage);
+							}else{
+								L.addAttribute("array", symbolItem1.getIdentifier());
+								L.addAttribute("type", getArrayELemType(symbolItem1.getType()));
+								L.addAttribute("offset", String.valueOf(Integer.parseInt(E.getAttribute("offset"))*getTypeWidth(L.getAttribute("type"))));
+								gen("t"+localVarNumber+"="+E.getAttribute("addr")+"*"+getTypeWidth(L.getAttribute("type"))
+									, intercode);
+								localVarNumber++;
+							}
+							symbolStack.push(L);
 						}
 						else if(r_num==35){
 							// L->L [ E ] {L.nq = L1.nq; L.array = L1.array;L.type=L1.type.elem;t=newtemp();gen(t=E.addr*L.type.width);
@@ -151,7 +192,7 @@ public class sytaxAyalysis {
 							int t = Integer.parseInt(E.getAttribute("addr")) * getTypeWidth(L1.getAttribute("type"));
 							gen("t"+localVarNumber+"="+L1.getAttribute("offset")+t, intercode);
 							localVarNumber++;
-							symbolStack.add(L);
+							symbolStack.push(L);
 						}
 					}
 					else {
@@ -288,6 +329,15 @@ public class sytaxAyalysis {
 		}
 		return true;
 	}
+
+//	static String lookUpSymbolItemForLexeme(List<SymbolItem> symbolItems, String lexeme){
+//		for(SymbolItem symbol : symbolItems){
+//			if (symbol.getIdentifier().equals(lexeme)){
+//
+//			}
+//		}
+//
+//	}
 	static void gen(String inter,List<InterCode> intercode) {
 		intercode.add(new InterCode(new String[]{inter}));
 	}
@@ -295,6 +345,7 @@ public class sytaxAyalysis {
 		List<Symbol> symbols = new ArrayList<Symbol>();
 		for(Token t:tokens) {
 			Symbol s = new Symbol(t.getKey());
+			//TODO: 这个地方改一下，当是数字的时候加key到value；当是标识符，其他符号时加key到lexeme
 			s.addAttribute("value", t.getValue());
 			s.addAttribute("line", t.getLine()+"");
 			symbols.add(s);
