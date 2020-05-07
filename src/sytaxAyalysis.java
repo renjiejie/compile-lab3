@@ -26,6 +26,8 @@ public class sytaxAyalysis {
 		List<Symbol> symbols = tokenToSymbol(tokens);
 		List<InterCode> intercode = new ArrayList<InterCode>(); //中间代码
 		List<SymbolItem> symbolItem = new ArrayList<SymbolItem>();  //符号表
+		int localVarNumber = 0;  //记录当前生成了多少个临时变量，一个 newtemp（）生成一个临时变量，
+		                         // 所以在使用临时变量在三元式中时名字不重复
 		//临时变量
 		String localT;
 		String localW;
@@ -84,6 +86,7 @@ public class sytaxAyalysis {
 						tree.add(parent);
 					
 						//语义操作
+
 						switch (Integer.parseInt(action.substring(1))) {
 						//P->D {P.nq = D.nq}
 						case 0:
@@ -105,6 +108,7 @@ public class sytaxAyalysis {
 							for(int j:B1.getFalseList()) {
 								intercode.get(j).backPatch(B2.getAttribute("nq"));
 							}
+							symbolStack.add(B);
 							break;
 						/***
 						 * S→ call id ( F) 
@@ -127,7 +131,36 @@ public class sytaxAyalysis {
 							}
 							gen("call "+ id.getAttribute("addr")+","+n,intercode);
 							break;
-						default:
+
+							//L->id [ E ] {L,nq = E.nq; L.array=lookup(id.lexeme);if L.array==null then error;
+							//             L.type=L.array.type.elem; L.offset = newtemp(); gen(L.offset=E.addr*L.type.width);}
+						case 34:
+							symbolStack.pop();
+							Symbol E = symbolStack.pop();
+							symbolStack.pop();
+							Symbol L1 = symbolStack.pop();
+							Symbol id = new Symbol("id");
+
+
+							// L->L [ E ] {L.nq = L1.nq; L.array = L1.array;L.type=L1.type.elem;t=newtemp();gen(t=E.addr*L.type.width);
+							// 						L.offset = newtemp(); gen(L.offset= L1.offset+t);}
+						case 35:
+							symbolStack.pop();
+							Symbol E = symbolStack.pop();
+							symbolStack.pop();
+							Symbol L1 = symbolStack.pop();
+							Symbol L = new Symbol("L");
+							L.addAttribute("nq", L1.getAttribute("nq"));
+							L.addAttribute("type", getArrayELemType(L1.getAttribute("type")));
+							gen("t"+localVarNumber+"="+E.getAttribute("addr")+"*"+getTypeWidth(L1.getAttribute("type"))
+								,intercode);
+							localVarNumber++;
+							int t = Integer.parseInt(E.getAttribute("addr")) * getTypeWidth(L1.getAttribute("type");
+							gen("t"+localVarNumber+"="+L1.getAttribute("offset")+t, intercode);
+							localVarNumber++;
+							symbolStack.add(L);
+
+							default:
 							
 							break;
 						}
@@ -278,6 +311,38 @@ public class sytaxAyalysis {
 			symbols.add(s);
 		}
 		return symbols;
+	}
+
+	/**
+	 * 获取数组的元素类型
+	 * @param arrayType 多维（一维）数组的类型
+	 * @return 数组元素的类型
+	 */
+	static String getArrayELemType(String arrayType){
+		assert arrayType.contains("[");
+		assert arrayType.contains("]");
+		int first_left_index = arrayType.indexOf('[');
+		int first_right_index = arrayType.indexOf(']');
+		return arrayType.substring(0, first_left_index)+arrayType.substring(first_right_index+1);
+	}
+
+	/**
+	 * 计算类型的宽度信息
+	 * @param typeName 类型名
+	 * @return 宽度
+	 */
+	static int getTypeWidth(String typeName){
+		int width = 4;
+		if (typeName.contains("[")){ //数组类型
+			while(typeName.contains("[")){
+				int left_index = typeName.indexOf('[');
+				int right_index = typeName.indexOf(']');
+				int subWidth = Integer.parseInt(typeName.substring(left_index+1, right_index));
+				width*=subWidth;
+				typeName = typeName.substring(right_index+1);
+			}
+		}
+		return width;
 	}
 }
 
