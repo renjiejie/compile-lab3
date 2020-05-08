@@ -126,7 +126,39 @@ public class sytaxAyalysis {
 							}
 							gen("call "+ id.getAttribute("addr")+","+n,intercode);
 							symbolStack.push(S);
-						} else if(r_num==32){
+						} else if (r_num==28){
+							//E->digit {E.nq = nextquad; E.addr=lookup(digit.lexeme);if E.addr==null then error}
+							Symbol digit = symbolStack.pop();
+							Symbol E = new Symbol("E");
+							E.addAttribute("nq", String.valueOf(intercode.size()+1));
+							E.addAttribute("addr", digit.getAttribute("value"));
+							symbolStack.push(E);
+						}else if(r_num==29){
+							//E->L {E.nq = L.nq; E.addr=newtemp(); gen(E.addr=L.array[L.offset];}
+							Symbol L = symbolStack.pop();
+							Symbol E = new Symbol("E");
+							E.addAttribute("nq", L.getAttribute("nq"));
+							E.addAttribute("addr", L.getAttribute("array")+"["+L.getAttribute("offset")+"]");
+							gen("t"+localVarNumber+"="+L.getAttribute("array")+"["+L.getAttribute("offset")+"]", intercode);
+							localVarNumber++;
+							symbolStack.push(E);
+						} else if(r_num==30){
+							// F->F1, E{ F.nq =F1.nq; 将E.addr添加到q的队尾;    } 特殊
+							Symbol E = symbolStack.pop();
+							Symbol F1 = symbolStack.pop();
+							Symbol F = new Symbol("F");
+							F.addAttribute("nq", F1.getAttribute("nq"));
+							q.offer(Integer.valueOf(E.getAttribute("addr")));
+							symbolStack.push(F);
+						}else if (r_num==31){
+							// F->E{F.nq=E.nq;将q初始化为只包含E.addr;  }
+							Symbol E = symbolStack.pop();
+							Symbol F = new Symbol("F");
+							F.addAttribute("nq", E.getAttribute("nq"));
+							q = new LinkedList<>();
+							q.offer(Integer.valueOf(E.getAttribute("addr")));
+							symbolStack.push(F);
+						}else if(r_num==32){
 							//X->int {X.nq = nextquad; X.type=int;X.width=4;}
 							symbolStack.pop();
 							Symbol X = new Symbol("X");
@@ -190,6 +222,7 @@ public class sytaxAyalysis {
 								,intercode);
 							localVarNumber++;
 							int t = Integer.parseInt(E.getAttribute("addr")) * getTypeWidth(L1.getAttribute("type"));
+							L.addAttribute("offset", String.valueOf(Integer.parseInt(L1.getAttribute("offset"))+t));
 							gen("t"+localVarNumber+"="+L1.getAttribute("offset")+t, intercode);
 							localVarNumber++;
 							symbolStack.push(L);
