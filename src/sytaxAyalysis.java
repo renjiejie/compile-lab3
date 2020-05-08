@@ -98,7 +98,12 @@ public class sytaxAyalysis {
 							P.addAttribute("nq", symbolStack.pop().getAttribute("nq"));
 							symbolStack.push(P);
 						}else if(r_num==1){
+							//P->S {P.nq = S.nq}
+							Symbol S = symbolStack.pop();
+							Symbol P = new Symbol("P");
 
+							P.addAttribute("nq", S.getAttribute("nq"));
+							symbolStack.push(P);
 						}else if(r_num ==2){
 							//B->B1 or B2 {B.nq  = B1.nq;backpatch(B1.falselist,B2.nq);
 							//B.truelist=merge(B1.truelist,B2.truelist);B.falselist=B2.falselist;}
@@ -106,10 +111,23 @@ public class sytaxAyalysis {
 							symbolStack.pop();
 							Symbol B1 = symbolStack.pop();
 							Symbol B = new Symbol("B");
+
 							B.addAttribute("nq", B1.getAttribute("nq"));
 							backpatch(B1.getFalseList(), Integer.parseInt(B2.getAttribute("nq")), intercode);
 							B.merge(B1.getTrueList(), B2.getTrueList(), 1);
 							B.addList(B2.getFalseList(), 0);
+							symbolStack.push(B);
+						}else if(r_num==3){
+							//B->B1 and B2{B.nq = B1.nq; backpatch(B1.truelist,B2.nq);
+							//             B.truelist=B2.truelist;B.falselist=merge(B1.falselist,B2.falselist);}
+							Symbol B2 = symbolStack.pop();
+							symbolStack.pop();
+							Symbol B1 = symbolStack.pop();
+							Symbol B = new Symbol("B");
+
+							B.addAttribute("nq", B1.getAttribute("nq"));
+							B.addList(B2.getTrueList(), 1);
+							B.merge(B1.getFalseList(), B2.getFalseList(), 0);
 							symbolStack.push(B);
 						}else if(r_num==4){
 							//B->not B1 {B.nq = B1.nq; B.truelist=B1.falselist;B.falselist=B1.truelist;
