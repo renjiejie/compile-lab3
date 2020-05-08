@@ -29,8 +29,9 @@ public class sytaxAyalysis {
 		int localVarNumber = 0;  //记录当前生成了多少个临时变量，一个 newtemp（）生成一个临时变量，
 		                         // 所以在使用临时变量在三元式中时名字不重复
 		//临时变量
-		String localT;
-		String localW;
+		String localT = "";
+		String localW = "";
+		int offset=0; //偏移量
 		
 		Queue<Integer> q = new LinkedList<>();
 		tokens.add(new Token("$", null));
@@ -42,7 +43,12 @@ public class sytaxAyalysis {
 			Token token = tokens.get(ti);
 			Symbol symbol = symbols.get(ti);
 			action = slrTable[stateStack.peek()][getTokenIndex(token)];
-			
+
+			if (symbolStack.peek().getName().equals("X")) {  //将栈中X的属放在临时变量t，w中
+				localT = symbolStack.peek().getAttribute("type");
+				localW = symbolStack.peek().getAttribute("width");
+			}
+
 			System.out.println(action);
 			System.out.println(stateStack.toString());
 			System.out.println(tokenStack.toString());
@@ -101,10 +107,88 @@ public class sytaxAyalysis {
 							Symbol B1 = symbolStack.pop();
 							Symbol B = new Symbol("B");
 							B.addAttribute("nq", B1.getAttribute("nq"));
-							for(int j:B1.getFalseList()) {
-								intercode.get(j).backPatch(B2.getAttribute("nq"));
-							}
+							backpatch(B1.getFalseList(), Integer.parseInt(B2.getAttribute("nq")), intercode);
 							symbolStack.push(B);
+						}else if(r_num==4){
+							//B->not B1 {B.nq = B1.nq; B.truelist=B1.falselist;B.falselist=B1.truelist;
+							Symbol B1 = symbolStack.pop();
+							symbolStack.pop();
+							Symbol B = new Symbol("B");
+
+							B.addAttribute("nq", B1.getAttribute("nq"));
+							B1.addList(B1.getFalseList(), 1);
+							B1.addList(B1.getTrueList(), 0);
+							symbolStack.push(B);
+						}else if(r_num==5){
+							//B->B1{B.nq = B1.nq; B.truelist=B1.truelist;B.falselist=B1.falselist;}
+							Symbol B1 = symbolStack.pop();
+							Symbol B = new Symbol("B");
+
+							B.addAttribute("nq", B1.getAttribute("nq"));
+							B1.addList(B1.getTrueList(), 1);
+							B1.addList(B1.getFalseList(), 0);
+							symbolStack.push(B);
+						}else if(r_num==6){
+							//B->E1 relop E2 {B.nq = E1.nq; B.truelist=makelist(nextquad);B.falselist=makelist(nextquad+1);
+							//                gen(‘if’E1.addr relop E2.addr‘goto_’);gen(‘goto_’);}
+							Symbol E2 = symbolStack.pop();
+							Symbol relop = symbolStack.pop();
+							Symbol E1 = symbolStack.pop();
+							Symbol B = new Symbol("B");
+
+							B.addAttribute("nq", E1.getAttribute("nq"));
+							B.makeList(intercode.size()+1, 1);
+							B.makeList(intercode.size()+2, 0);
+							gen("if "+E1.getAttribute("addr")+relop.getAttribute("lexeme")+E2.getAttribute("addr")+" goto ", intercode);
+							gen("goto ", intercode);
+							symbolStack.push(B);
+						}else if(r_num==7){
+							//B->true{B.nq = nextquad; B.truelist=makelist(nextquad);gen(‘goto_’);}
+							symbolStack.pop();
+							Symbol B = new Symbol("B");
+
+							B.addAttribute("nq", String.valueOf(intercode.size()+1));
+							B.makeList(intercode.size()+1, 1);
+							gen("goto ", intercode);
+							symbolStack.push(B);
+						}else if(r_num==8){
+							//B->false {B.nq = nextquad; B.falselist=makelist(nextquad);gen(‘goto’);}
+							symbolStack.pop();
+							Symbol B = new Symbol("B");
+
+							B.addAttribute("nq", String.valueOf(intercode.size()+1));
+							B.makeList(intercode.size()+1, 0);
+							gen("goto ", intercode);
+							symbolStack.push(B);
+						}else if(r_num==9){
+							// S->id = E ; {S.nq = E.nq; p=lookup(id.lexeme);if p== null then error;gen(p’=’E.addr);}
+							Symbol E = symbolStack.pop();
+							symbolStack.pop();
+							Symbol id = symbolStack.pop();
+							Symbol S = new Symbol("S");
+
+							S.addAttribute("nq", E.getAttribute("nq"));
+							String p = null;
+							if (lookUpSymbolItem(symbolItem, id.getAttribute("lexeme"))){
+								p = id.getAttribute("lexeme");
+							}
+							if (null==p){
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
+									+id.getAttribute("lexeme")+" not defined";
+								System.out.println(errorMessage);
+							}
+							gen(p+" = "+E.getAttribute("addr"), intercode);
+							symbolStack.push(S);
+						}else if(r_num==10){
+							//S->L = E ; {S.nq = L.nq; gen(L.array[L.offset]=E.addr);}
+							Symbol E = symbolStack.pop();
+							symbolStack.pop();
+							Symbol L = symbolStack.pop();
+							Symbol S = new Symbol("S");
+							S.addAttribute("nq", L.getAttribute("nq"));
+							gen(L.getAttribute("array")+"["+L.getAttribute("addr")+"]"+"="+E.getAttribute("addr"),
+								intercode);
+							symbolStack.push(S);
 						}else if(r_num==11){
 							/***
 							 * S→ call id ( F)
@@ -126,11 +210,132 @@ public class sytaxAyalysis {
 							}
 							gen("call "+ id.getAttribute("addr")+","+n,intercode);
 							symbolStack.push(S);
+						}else if(r_num==12){
+							// S->if B {S1} {S.nq = B.nq; backpatch(B.truelist,M.quad);S.nextlist=merge(B.falselist,S1.nextlist);}
+							symbolStack.pop();
+							Symbol S1 = symbolStack.pop();
+							symbolStack.pop();
+							Symbol B = symbolStack.pop();
+							symbolStack.pop();
+							Symbol S = new Symbol("S");
+
+							S.addAttribute("nq", B.getAttribute("nq"));
+							backpatch(B.getTrueList(), intercode.size()+1, intercode);
+							S.merge(B.getFalseList(), S1.getNextList(), 2);
+							symbolStack.push(S);
+						}else if(r_num==13){
+							System.out.println("error r13");
+						}else if(r_num==14){
+							//S-> while B {S1} {S.nq=B.nq; backpatch(S1.nextlist,B.nq);backpatch(B.truelist,S1.nq);
+							//                  S.nextlist=B.falselist;gen(‘goto’B.nq);}
+							symbolStack.pop();
+							Symbol S1 = symbolStack.pop();
+							symbolStack.pop();
+							Symbol B = symbolStack.pop();
+							symbolStack.pop();
+							Symbol S = new Symbol("S");
+
+							S.addAttribute("nq", B.getAttribute("nq"));
+							backpatch(S1.getNextList(), Integer.parseInt(B.getAttribute("nq")), intercode);
+							backpatch(B.getTrueList(), Integer.parseInt(S1.getAttribute("nq")), intercode);
+							S.addList(B.getFalseList(), 2);  // S.nextlist=S2.nextlist;
+							gen("goto "+B.getAttribute("nq"), intercode);
+							symbolStack.push(S);
+						}else if(r_num==15){
+							//S->S1 S2{S.nq = S1.nq; backpatch(S1.nextlist,S2.nq); S.nextlist=S2.nextlist;}
+							Symbol S2 = symbolStack.pop();
+							Symbol S1 = symbolStack.pop();
+							Symbol S = new Symbol("S");
+
+							S.addAttribute("nq", S1.getAttribute("nq"));
+							backpatch(S1.getNextList(), Integer.parseInt(S2.getAttribute("nq")), intercode);
+							S1.addList(S2.getNextList(), 2);  // S.nextlist=S2.nextlist;
+							symbolStack.push(S);
+						}else if(r_num==16){
+							// C->[ digit ] C {C.nq=C1.nq; C.type=array(digit.val,C1.type); C.width=digit.val*C1.width;}
+							Symbol C1 = symbolStack.pop();
+							symbolStack.pop();
+							Symbol digit = symbolStack.pop();
+							symbolStack.pop();
+							Symbol C = new Symbol("C");
+
+							C.addAttribute("nq", C1.getAttribute("nq"));
+							String C1Type = C1.getAttribute("type");
+							if(C1Type.contains("[")){
+								int indexOfFirst = C1Type.indexOf('[');
+								C.addAttribute("type", C1Type.substring(0, indexOfFirst)+
+									"["+digit.getAttribute("value")+"]"+C1Type.substring(indexOfFirst));
+							}else{
+								C.addAttribute("type", C1Type+"["+digit.getAttribute("value")+"]");
+							}
+							C.addAttribute("width", String.valueOf(Integer.parseInt(digit.getAttribute("width"))*
+								Integer.parseInt(C1.getAttribute("width"))));
+							symbolStack.push(C);
+						}else if(r_num==17){
+							//C->no {C.nq = nextquad; C.type=t;C.width=4;}
+							Symbol C = new Symbol("C");
+
+							C.addAttribute("nq", String.valueOf(intercode.size()+1));
+							C.addAttribute("type", localT);
+							C.addAttribute("width", String.valueOf(4));
+							symbolStack.push(C);
+						}else if(r_num==18){
+							//D->D1 D2{D.nq = D1.nq;}
+							Symbol D2 = symbolStack.pop();
+							Symbol D1 = symbolStack.pop();
+							Symbol D = new Symbol("D");
+
+							D.addAttribute("nq", D1.getAttribute("nq"));
+							symbolStack.push(D);
+						}else if(r_num==19){
+							//D->proc id ; D1 S{D.nq = D1.nq;}
+							Symbol S = symbolStack.pop();
+							Symbol D1 = symbolStack.pop();
+							symbolStack.pop();
+							symbolStack.pop();
+							symbolStack.pop();  // proc id ;
+							Symbol D = new Symbol("D");
+
+							D.addAttribute("nq", D1.getAttribute("nq"));
+							symbolStack.push(D);
+						}else if (r_num==20){
+							// D->T id;{D.nq= T.nq; enter( id.lexeme, T.type, offset); offset= offset+ T.width; }
+							Symbol id = symbolStack.pop();
+							Symbol T = symbolStack.pop();
+							Symbol D = new Symbol("D");
+
+							D.addAttribute("nq", T.getAttribute("nq"));
+							symbolItem.add(new SymbolItem(id.getAttribute("lexeme"), id.getAttribute("type"),
+								Integer.parseInt(id.getAttribute("line")), offset));
+							offset += Integer.parseInt(T.getAttribute("width"));
+							symbolStack.push(D);
+						}else if (r_num==21){
+							// T->X {t=X.type;w=X.width;}（前面做了） C{T.nq =X.nq; T.type=C.type;T.width=C.width;}
+							Symbol C = symbolStack.pop();
+							Symbol X = symbolStack.pop();
+							Symbol T = new Symbol("T");
+
+							T.addAttribute("nq", X.getAttribute("nq"));
+							T.addAttribute("type", C.getAttribute("type"));
+							T.addAttribute("width", C.getAttribute("width"));
+							symbolStack.push(T);
+						}else if (r_num==22){
+							// T->record D{T.nq = D.nq;}
+							Symbol D = symbolStack.pop();
+							symbolStack.pop();
+							Symbol T = new Symbol("T");
+							T.addAttribute("nq", D.getAttribute("nq"));
+							symbolStack.push(T);
 						} else if (r_num==28){
 							//E->digit {E.nq = nextquad; E.addr=lookup(digit.lexeme);if E.addr==null then error}
 							Symbol digit = symbolStack.pop();
 							Symbol E = new Symbol("E");
 							E.addAttribute("nq", String.valueOf(intercode.size()+1));
+							if(digit.getAttribute("value")==null){
+								String errorMessage = "Error at line["+digit.getAttribute("line")+"]"+", "
+									+digit.getAttribute("value")+" not defined";
+								System.out.println(errorMessage);
+							}
 							E.addAttribute("addr", digit.getAttribute("value"));
 							symbolStack.push(E);
 						}else if(r_num==29){
@@ -350,24 +555,23 @@ public class sytaxAyalysis {
 		}
 	}
 	/***
-	 * 当出现重复返回false
-	 * @param l
+	 * 当找到了，返回true，没找到返回false
+	 * @param symbolItems
 	 * @param item
 	 * @return
 	 */
-	static boolean lookUpSymbolItem(List<SymbolItem> l,String item) {
-		for(SymbolItem i :l) {
-			if(i.getIdentifier().equals(item)) 
-				return false;
+	static boolean lookUpSymbolItem(List<SymbolItem> symbolItems,String item) {
+		for(SymbolItem symbolItem :symbolItems) {
+			if(symbolItem.getIdentifier().equals(item))
+				return true;
 		}
-		return true;
+		return false;
 	}
 
-//	static String lookUpSymbolItemForLexeme(List<SymbolItem> symbolItems, String lexeme){
-//		for(SymbolItem symbol : symbolItems){
-//			if (symbol.getIdentifier().equals(lexeme)){
-//
-//			}
+//	static String lookUpAndGetSymbolItem(List<SymbolItem> symbolItems, String lexeme){
+//		for(SymbolItem symbolItem :symbolItems) {
+//			if(symbolItem.getIdentifier().equals(lexeme))
+//				return symbolItem;
 //		}
 //
 //	}
@@ -416,6 +620,18 @@ public class sytaxAyalysis {
 			}
 		}
 		return width;
+	}
+
+	/**
+	 * backpatch 回填函数
+	 * @param list 回填的三元式地址
+	 * @param value 回填的值
+	 * @param interCodes 三元式列表
+	 */
+	static void backpatch(List<Integer> list, int value, List<InterCode> interCodes){
+		for(int listNumber: list) {  //backpatch
+			interCodes.get(listNumber).backPatch(String.valueOf(value));
+		}
 	}
 }
 
