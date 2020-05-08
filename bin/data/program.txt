@@ -2,3 +2,4 @@ proc test;
   integer a;
   real [1]b;
   integer [2][3]c
+
