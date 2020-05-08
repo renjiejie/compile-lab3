@@ -217,11 +217,12 @@ public class sytaxAyalysis {
 							symbolStack.push(S);
 						}else if(r_num==11){
 							/***
-							 * S→ call id ( F)
+							 * S→ call id ( F);
 							 * {S.nq = F,nq;
 							 * n=0;
 							 * for q中的每个t do{gen(‘param’ t );n = n+1；}gen(‘call’ i d.addr‘,’  n);} 特殊处理
 							 */
+							symbolStack.pop();
 							symbolStack.pop();
 							Symbol F = symbolStack.pop();
 							symbolStack.pop();
@@ -234,7 +235,7 @@ public class sytaxAyalysis {
 							for(n=0;n<size;++n) {
 								gen("param "+q.poll(), intercode);
 							}
-							gen("call "+ id.getAttribute("addr")+","+n,intercode);
+							gen("call "+ id.getAttribute("lexeme")+","+n,intercode);
 							symbolStack.push(S);
 						}else if(r_num==12){
 							// S->if B then S1 {S.nq = B.nq; backpatch(B.truelist,M.quad);S.nextlist=merge(B.falselist,S1.nextlist);}
@@ -246,14 +247,15 @@ public class sytaxAyalysis {
 
 							S.addAttribute("nq", B.getAttribute("nq"));
 							backpatch(B.getTrueList(), Integer.parseInt(S1.getAttribute("nq")), intercode);
+							backpatch(B.getFalseList(), intercode.size()+1, intercode);
+							backpatch(S1.getNextList(), intercode.size()+1, intercode);
 							S.merge(B.getFalseList(), S1.getNextList(), 2);
 							symbolStack.push(S);
 						}else if(r_num==13){
 							System.out.println("error r13");
 						}else if(r_num==14){
-							//S-> while B {S1} {S.nq=B.nq; backpatch(S1.nextlist,B.nq);backpatch(B.truelist,S1.nq);
+							//S-> while B do S1 {S.nq=B.nq; backpatch(S1.nextlist,B.nq);backpatch(B.truelist,S1.nq);
 							//                  S.nextlist=B.falselist;gen(‘goto’B.nq);}
-							symbolStack.pop();
 							Symbol S1 = symbolStack.pop();
 							symbolStack.pop();
 							Symbol B = symbolStack.pop();
@@ -263,6 +265,7 @@ public class sytaxAyalysis {
 							S.addAttribute("nq", B.getAttribute("nq"));
 							backpatch(S1.getNextList(), Integer.parseInt(B.getAttribute("nq")), intercode);
 							backpatch(B.getTrueList(), Integer.parseInt(S1.getAttribute("nq")), intercode);
+							backpatch(B.getFalseList(), intercode.size()+1, intercode);
 							S.addList(B.getFalseList(), 2);  // S.nextlist=S2.nextlist;
 							gen("goto "+B.getAttribute("nq"), intercode);
 							symbolStack.push(S);
@@ -323,11 +326,17 @@ public class sytaxAyalysis {
 							Symbol D = new Symbol("D");
 
 							D.addAttribute("nq", T.getAttribute("nq"));
-							symbolItem.add(new SymbolItem(id.getAttribute("lexeme"), T.getAttribute("type"),
-								Integer.parseInt(id.getAttribute("line")), offset));
-							if (null != T.getAttribute("width")){
-								offset += Integer.parseInt(T.getAttribute("width"));
-								System.out.println("offset: "+offset);
+							if (lookUpSymbolItem(symbolItem, id.getAttribute("lexeme"))){
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
+									+id.getAttribute("lexeme")+" has been defined";
+								System.out.println(errorMessage);
+							}else{
+								symbolItem.add(new SymbolItem(id.getAttribute("lexeme"), T.getAttribute("type"),
+									Integer.parseInt(id.getAttribute("line")), offset));
+								if (null != T.getAttribute("width")){
+									offset += Integer.parseInt(T.getAttribute("width"));
+									System.out.println("offset: "+offset);
+								}
 							}
 							symbolStack.push(D);
 						}else if (r_num==21){
@@ -349,16 +358,21 @@ public class sytaxAyalysis {
 							symbolStack.push(T);
 						}else if (r_num==23){
 							// E->E + E {E.nq = E1.nq; E.addr=newtemp();gen(E.addr=E1.addr+E2.addr);}
-							Symbol E1 = symbolStack.pop();
-							symbolStack.pop();  // "*"
 							Symbol E2 = symbolStack.pop();
+							Symbol plus = symbolStack.pop();  // "*"
+							Symbol E1 = symbolStack.pop();
 							Symbol E = new Symbol("E");
 
 							E.addAttribute("nq", E1.getAttribute("nq"));
-							E.addAttribute("addr", String.valueOf(Integer.parseInt(E1.getAttribute("addr")) +
-								Integer.parseInt(E2.getAttribute("addr"))));
-							gen("t"+localVarNumber+" = "+E1.getAttribute("addr")+" + "+ E2.getAttribute("addr"), intercode);
-							localVarNumber++;
+							if (E1.getAttribute("addr").matches("[0-9]*") && E2.getAttribute("addr").matches("[0-9]*")){
+								E.addAttribute("addr", String.valueOf(Integer.parseInt(E1.getAttribute("addr")) +
+									Integer.parseInt(E2.getAttribute("addr"))));
+								gen("t"+localVarNumber+" = "+E1.getAttribute("addr")+" + "+ E2.getAttribute("addr"), intercode);
+								localVarNumber++;
+							}else{
+								String errorMessage = "Error at line["+plus.getAttribute("line")+"]"+", calculated component mismatch";
+								System.out.println(errorMessage);
+							}
 							symbolStack.push(E);
 						} else if (r_num==24){
 							 // E->E * E {E.nq = E1.nq; E.addr=newtemp();gen(E.addr=E1.addr*E2.addr);
@@ -434,6 +448,7 @@ public class sytaxAyalysis {
 						} else if(r_num==30){
 							// F->F1, E{ F.nq =F1.nq; 将E.addr添加到q的队尾;    } 特殊
 							Symbol E = symbolStack.pop();
+							symbolStack.pop();
 							Symbol F1 = symbolStack.pop();
 							Symbol F = new Symbol("F");
 							F.addAttribute("nq", F1.getAttribute("nq"));
