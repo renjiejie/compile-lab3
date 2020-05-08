@@ -35,8 +35,10 @@ public class sytaxAyalysis {
 		
 		Queue<Integer> q = new LinkedList<>();
 		tokens.add(new Token("$", null));
+		symbols.add(new Symbol("$"));
 		stateStack.add(0);
 		tokenStack.add(new Token("$", null));
+		symbolStack.add(new Symbol("$"));
 		String action;
 		int ti = 0;
 		while(ti<tokens.size()){
