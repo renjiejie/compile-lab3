@@ -108,6 +108,8 @@ public class sytaxAyalysis {
 							Symbol B = new Symbol("B");
 							B.addAttribute("nq", B1.getAttribute("nq"));
 							backpatch(B1.getFalseList(), Integer.parseInt(B2.getAttribute("nq")), intercode);
+							B.merge(B1.getTrueList(), B2.getTrueList(), 1);
+							B.addList(B2.getFalseList(), 0);
 							symbolStack.push(B);
 						}else if(r_num==4){
 							//B->not B1 {B.nq = B1.nq; B.truelist=B1.falselist;B.falselist=B1.truelist;
