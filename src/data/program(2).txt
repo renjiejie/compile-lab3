@@ -20,4 +20,3 @@ proc test;
                 then b=1;
     call proc_a(1,2,3);
 
-
