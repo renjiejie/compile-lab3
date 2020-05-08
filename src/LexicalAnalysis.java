@@ -266,7 +266,12 @@ public class LexicalAnalysis {
 			System.out.println("<separator, "+str.toString()+">");
 			token = new Token(str.toString(),null,line);
 			break;
-		default:
+		case relop:
+			System.out.print(String.format("%-20s", str));
+			System.out.println("<relop, "+str.toString()+">");
+			token = new Token("relop",str.toString(),line);
+			break;
+			default:
 			System.out.print(String.format("%-20s", str));
 			System.out.println("<"+type.toString()+", ->");
 			token = new Token(type.toString(),null,line);

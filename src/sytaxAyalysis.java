@@ -129,6 +129,7 @@ public class sytaxAyalysis {
 							Symbol B = new Symbol("B");
 
 							B.addAttribute("nq", B1.getAttribute("nq"));
+							backpatch(B1.getTrueList(), Integer.parseInt(B2.getAttribute("nq")), intercode);
 							B.addList(B2.getTrueList(), 1);
 							B.merge(B1.getFalseList(), B2.getFalseList(), 0);
 							symbolStack.push(B);
@@ -153,7 +154,7 @@ public class sytaxAyalysis {
 							symbolStack.push(B);
 						}else if(r_num==6){
 							//B->E1 relop E2 {B.nq = E1.nq; B.truelist=makelist(nextquad);B.falselist=makelist(nextquad+1);
-							//                gen(‘if’E1.addr relop E2.addr‘goto_’);gen(‘goto_’);}
+							//                gen(‘if’E1.addr relop E2.addr‘goto’);gen(‘goto’);}
 							Symbol E2 = symbolStack.pop();
 							Symbol relop = symbolStack.pop();
 							Symbol E1 = symbolStack.pop();
@@ -185,6 +186,7 @@ public class sytaxAyalysis {
 							symbolStack.push(B);
 						}else if(r_num==9){
 							// S->id = E ; {S.nq = E.nq; p=lookup(id.lexeme);if p== null then error;gen(p’=’E.addr);}
+							symbolStack.pop();
 							Symbol E = symbolStack.pop();
 							symbolStack.pop();
 							Symbol id = symbolStack.pop();
@@ -204,12 +206,13 @@ public class sytaxAyalysis {
 							symbolStack.push(S);
 						}else if(r_num==10){
 							//S->L = E ; {S.nq = L.nq; gen(L.array[L.offset]=E.addr);}
+							symbolStack.pop();
 							Symbol E = symbolStack.pop();
 							symbolStack.pop();
 							Symbol L = symbolStack.pop();
 							Symbol S = new Symbol("S");
 							S.addAttribute("nq", L.getAttribute("nq"));
-							gen(L.getAttribute("array")+"["+L.getAttribute("addr")+"]"+"="+E.getAttribute("addr"),
+							gen(L.getAttribute("array")+"["+L.getAttribute("offset")+"]"+"="+E.getAttribute("addr"),
 								intercode);
 							symbolStack.push(S);
 						}else if(r_num==11){
@@ -234,8 +237,7 @@ public class sytaxAyalysis {
 							gen("call "+ id.getAttribute("addr")+","+n,intercode);
 							symbolStack.push(S);
 						}else if(r_num==12){
-							// S->if B {S1} {S.nq = B.nq; backpatch(B.truelist,M.quad);S.nextlist=merge(B.falselist,S1.nextlist);}
-							symbolStack.pop();
+							// S->if B then S1 {S.nq = B.nq; backpatch(B.truelist,M.quad);S.nextlist=merge(B.falselist,S1.nextlist);}
 							Symbol S1 = symbolStack.pop();
 							symbolStack.pop();
 							Symbol B = symbolStack.pop();
@@ -243,7 +245,7 @@ public class sytaxAyalysis {
 							Symbol S = new Symbol("S");
 
 							S.addAttribute("nq", B.getAttribute("nq"));
-							backpatch(B.getTrueList(), intercode.size()+1, intercode);
+							backpatch(B.getTrueList(), Integer.parseInt(S1.getAttribute("nq")), intercode);
 							S.merge(B.getFalseList(), S1.getNextList(), 2);
 							symbolStack.push(S);
 						}else if(r_num==13){
@@ -272,7 +274,7 @@ public class sytaxAyalysis {
 
 							S.addAttribute("nq", S1.getAttribute("nq"));
 							backpatch(S1.getNextList(), Integer.parseInt(S2.getAttribute("nq")), intercode);
-							S1.addList(S2.getNextList(), 2);  // S.nextlist=S2.nextlist;
+							S.addList(S2.getNextList(), 2);  // S.nextlist=S2.nextlist;
 							symbolStack.push(S);
 						}else if(r_num==16){
 							// C->[ digit ] C {C.nq=C1.nq; C.type=array(digit.val,C1.type); C.width=digit.val*C1.width;}
@@ -291,16 +293,8 @@ public class sytaxAyalysis {
 							}else{
 								C.addAttribute("type", C1Type+"["+digit.getAttribute("value")+"]");
 							}
-							C.addAttribute("width", String.valueOf(Integer.parseInt(digit.getAttribute("width"))*
+							C.addAttribute("width", String.valueOf(Integer.parseInt(digit.getAttribute("value"))*
 								Integer.parseInt(C1.getAttribute("width"))));
-							symbolStack.push(C);
-						}else if(r_num==17){
-							//C->no {C.nq = nextquad; C.type=t;C.width=4;}
-							Symbol C = new Symbol("C");
-
-							C.addAttribute("nq", String.valueOf(intercode.size()+1));
-							C.addAttribute("type", localT);
-							C.addAttribute("width", String.valueOf(4));
 							symbolStack.push(C);
 						}else if(r_num==18){
 							//D->D1 D2{D.nq = D1.nq;}
@@ -323,14 +317,18 @@ public class sytaxAyalysis {
 							symbolStack.push(D);
 						}else if (r_num==20){
 							// D->T id;{D.nq= T.nq; enter( id.lexeme, T.type, offset); offset= offset+ T.width; }
+							symbolStack.pop();
 							Symbol id = symbolStack.pop();
 							Symbol T = symbolStack.pop();
 							Symbol D = new Symbol("D");
 
 							D.addAttribute("nq", T.getAttribute("nq"));
-							symbolItem.add(new SymbolItem(id.getAttribute("lexeme"), id.getAttribute("type"),
+							symbolItem.add(new SymbolItem(id.getAttribute("lexeme"), T.getAttribute("type"),
 								Integer.parseInt(id.getAttribute("line")), offset));
-							offset += Integer.parseInt(T.getAttribute("width"));
+							if (null != T.getAttribute("width")){
+								offset += Integer.parseInt(T.getAttribute("width"));
+								System.out.println("offset: "+offset);
+							}
 							symbolStack.push(D);
 						}else if (r_num==21){
 							// T->X {t=X.type;w=X.width;}（前面做了） C{T.nq =X.nq; T.type=C.type;T.width=C.width;}
@@ -474,6 +472,7 @@ public class sytaxAyalysis {
 							Symbol id = symbolStack.pop();
 							Symbol L = new Symbol("L");
 
+							L.addAttribute("nq", E.getAttribute("nq"));
 							SymbolItem symbolItem1 = null;
 							for (SymbolItem oneSymbolItem : symbolItem){
 								if (oneSymbolItem.getIdentifier().equals(id.getAttribute("lexeme"))){
@@ -492,7 +491,7 @@ public class sytaxAyalysis {
 							}else{
 								L.addAttribute("array", symbolItem1.getIdentifier());
 								L.addAttribute("type", getArrayELemType(symbolItem1.getType()));
-								L.addAttribute("offset", String.valueOf(Integer.parseInt(E.getAttribute("offset"))*getTypeWidth(L.getAttribute("type"))));
+								L.addAttribute("offset", String.valueOf(Integer.parseInt(E.getAttribute("addr"))*getTypeWidth(L.getAttribute("type"))));
 								gen("t"+localVarNumber+"="+E.getAttribute("addr")+"*"+getTypeWidth(L.getAttribute("type"))
 									, intercode);
 								localVarNumber++;
@@ -508,13 +507,14 @@ public class sytaxAyalysis {
 							Symbol L1 = symbolStack.pop();
 							Symbol L = new Symbol("L");
 							L.addAttribute("nq", L1.getAttribute("nq"));
+							L.addAttribute("array", L1.getAttribute("array"));
 							L.addAttribute("type", getArrayELemType(L1.getAttribute("type")));
 							gen("t"+localVarNumber+"="+E.getAttribute("addr")+"*"+getTypeWidth(L1.getAttribute("type"))
 								,intercode);
 							localVarNumber++;
 							int t = Integer.parseInt(E.getAttribute("addr")) * getTypeWidth(L1.getAttribute("type"));
 							L.addAttribute("offset", String.valueOf(Integer.parseInt(L1.getAttribute("offset"))+t));
-							gen("t"+localVarNumber+"="+L1.getAttribute("offset")+t, intercode);
+							gen("t"+localVarNumber+"="+L1.getAttribute("offset")+" + "+t, intercode);
 							localVarNumber++;
 							symbolStack.push(L);
 						}
@@ -526,6 +526,16 @@ public class sytaxAyalysis {
 					}
 				}
 				else {
+					int r_num = Integer.parseInt(action.substring(1));
+					if(r_num==17){
+						//C->no {C.nq = nextquad; C.type=t;C.width=4;}
+						Symbol C = new Symbol("C");
+
+						C.addAttribute("nq", String.valueOf(intercode.size()+1));
+						C.addAttribute("type", localT);
+						C.addAttribute("width", String.valueOf(4));
+						symbolStack.push(C);
+					}
 					Token t1 = new Token(e.getLeft(), null);
 					tokenStack.add(t1);
 					tree.add(new Tree(t1));
@@ -544,10 +554,15 @@ public class sytaxAyalysis {
 				System.out.println("完成");
 				root.setNodeDepth(0);
 				new Order().preOrder(root);
+				for(SymbolItem item :symbolItem){
+					System.out.println(item);
+				}
+				for(InterCode inco: intercode){
+					System.out.println(inco);
+				}
 				System.exit(0);
 			}
 		}
-		
 	}
 	/**
 	 * 根据token返回索引
@@ -669,9 +684,12 @@ public class sytaxAyalysis {
 		List<Symbol> symbols = new ArrayList<Symbol>();
 		for(Token t:tokens) {
 			Symbol s = new Symbol(t.getKey());
-			//TODO: 这个地方改一下，当是数字的时候加key到value；当是标识符，其他符号时加key到lexeme
-			s.addAttribute("value", t.getValue());
-			s.addAttribute("lexeme", t.getKey());
+			if(t.getKey().equals("decimalConstant")){
+				s.addAttribute("value", t.getValue());
+			}else {
+				s.addAttribute("lexeme", t.getValue());
+			}
+			s.addAttribute("type", t.getKey());
 			s.addAttribute("line", t.getLine()+"");
 			symbols.add(s);
 		}
@@ -718,7 +736,7 @@ public class sytaxAyalysis {
 	 */
 	static void backpatch(List<Integer> list, int value, List<InterCode> interCodes){
 		for(int listNumber: list) {  //backpatch
-			interCodes.get(listNumber).backPatch(String.valueOf(value));
+			interCodes.get(listNumber-1).backPatch(String.valueOf(value));
 		}
 	}
 }

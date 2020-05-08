@@ -1,2 +1,14 @@
 proc test;
   integer a;
+  integer b;
+  record
+      integer e;
+  record_e;
+  if a==1
+      then b=1;
+           a=4;
+
+
+
+
+
