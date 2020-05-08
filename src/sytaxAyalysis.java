@@ -346,6 +346,69 @@ public class sytaxAyalysis {
 							Symbol T = new Symbol("T");
 							T.addAttribute("nq", D.getAttribute("nq"));
 							symbolStack.push(T);
+						}else if (r_num==23){
+							// E->E + E {E.nq = E1.nq; E.addr=newtemp();gen(E.addr=E1.addr+E2.addr);}
+							Symbol E1 = symbolStack.pop();
+							symbolStack.pop();  // "*"
+							Symbol E2 = symbolStack.pop();
+							Symbol E = new Symbol("E");
+
+							E.addAttribute("nq", E1.getAttribute("nq"));
+							E.addAttribute("addr", String.valueOf(Integer.parseInt(E1.getAttribute("addr")) +
+								Integer.parseInt(E2.getAttribute("addr"))));
+							gen("t"+localVarNumber+" = "+E1.getAttribute("addr")+" + "+ E2.getAttribute("addr"), intercode);
+							localVarNumber++;
+							symbolStack.push(E);
+						} else if (r_num==24){
+							 // E->E * E {E.nq = E1.nq; E.addr=newtemp();gen(E.addr=E1.addr*E2.addr);
+							Symbol E1 = symbolStack.pop();
+							symbolStack.pop();  // "*"
+							Symbol E2 = symbolStack.pop();
+							stateStack.pop();
+							Symbol E = new Symbol("E");
+
+							E.addAttribute("nq", E1.getAttribute("nq"));
+							E.addAttribute("addr", String.valueOf(Integer.parseInt(E1.getAttribute("addr")) *
+								Integer.parseInt(E2.getAttribute("addr"))));
+							gen("t"+localVarNumber+" = "+E1.getAttribute("addr")+" * "+ E2.getAttribute("addr"), intercode);
+							localVarNumber++;
+							symbolStack.push(E);
+						} else if (r_num==25){
+							// E->- E  {E.nq = E1.nq; E.addr=newtemp();gen(E.addr=uminus E1.addr);}
+							Symbol E1 = symbolStack.pop();
+							stateStack.pop();
+							Symbol E = new Symbol("E");
+
+							E.addAttribute("nq", E1.getAttribute("nq"));
+							E.addAttribute("addr", String.valueOf(-Integer.parseInt(E1.getAttribute("addr"))));
+							gen("t"+localVarNumber+" = uminus "+E1.getAttribute("addr"), intercode);
+							localVarNumber++;
+							symbolStack.push(E);
+						} else if (r_num==26){
+							 //E->( E ) {E.nq = E1.nq; E.addr=E1.addr}
+							symbolStack.pop(); // "("
+							Symbol E1 = symbolStack.pop();
+							symbolStack.pop(); // ")"
+							Symbol E = new Symbol("E");
+
+							E.addAttribute("nq", E1.getAttribute("nq"));
+							E.addAttribute("addr",E1.getAttribute("addr"));
+							symbolStack.push(E);
+						} else if (r_num==27){
+							// E->id  {E.nq = nextquad; E.addr=lookup(id.lexeme);if E.addr==null then error}
+							Symbol id = symbolStack.pop();
+							Symbol E = new Symbol("E");
+
+							E.addAttribute("nq", String.valueOf(intercode.size()+1));
+							if(lookUpSymbolItem(symbolItem, id.getAttribute("lexeme"))){
+								E.addAttribute("addr", id.getAttribute("lexeme"));
+							}else {
+								E.addAttribute("addr", null);
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
+									+id.getAttribute("lexeme")+" not defined";
+								System.out.println(errorMessage);
+							}
+							symbolStack.push(E);
 						} else if (r_num==28){
 							//E->digit {E.nq = nextquad; E.addr=lookup(digit.lexeme);if E.addr==null then error}
 							Symbol digit = symbolStack.pop();
