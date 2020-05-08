@@ -44,10 +44,11 @@ public class sytaxAyalysis {
 			Symbol symbol = symbols.get(ti);
 			action = slrTable[stateStack.peek()][getTokenIndex(token)];
 
-			if (symbolStack.peek().getName().equals("X")) {  //将栈中X的属放在临时变量t，w中
+			if (!symbolStack.isEmpty() && symbolStack.peek().getName().equals("X")) {  //将栈中X的属放在临时变量t，w中
 				localT = symbolStack.peek().getAttribute("type");
 				localW = symbolStack.peek().getAttribute("width");
 			}
+
 
 			System.out.println(action);
 			System.out.println(stateStack.toString());
@@ -660,6 +661,7 @@ public class sytaxAyalysis {
 //	}
 	static void gen(String inter,List<InterCode> intercode) {
 		intercode.add(new InterCode(new String[]{inter}));
+		System.out.println("gen: "+inter);
 	}
 	static List<Symbol> tokenToSymbol(List<Token> tokens) {
 		List<Symbol> symbols = new ArrayList<Symbol>();
@@ -667,6 +669,7 @@ public class sytaxAyalysis {
 			Symbol s = new Symbol(t.getKey());
 			//TODO: 这个地方改一下，当是数字的时候加key到value；当是标识符，其他符号时加key到lexeme
 			s.addAttribute("value", t.getValue());
+			s.addAttribute("lexeme", t.getKey());
 			s.addAttribute("line", t.getLine()+"");
 			symbols.add(s);
 		}

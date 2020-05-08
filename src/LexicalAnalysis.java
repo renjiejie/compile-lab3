@@ -24,7 +24,7 @@ public class LexicalAnalysis {
 		String dfaFilePath = "src/data/DFATable.xls";
 //		String slrFilePath = "src/data/SLRTable.xls";
 //		String grammarFilePath = "src/data/grammar.xls";
-		String programFilePath = "src/data/program.txt";
+		String programFilePath = "src/data/test.txt";
 		int line = 1;
 		System.out.println("使用的DFA转换表");
 		ReadTableFile.dfaTableToString(dfaFilePath);
