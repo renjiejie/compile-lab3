@@ -220,7 +220,7 @@ public class sytaxAyalysis {
 							S.addAttribute("nq", L.getAttribute("nq"));
 							gen(L.getAttribute("array")+"["+L.getAttribute("offset")+"]"+"="+E.getAttribute("addr"),
 								intercode);
-							addFour("+", E.getAttribute("addr"), "-",L.getAttribute("array")+"["+L.getAttribute("offset")+"]" , four);
+							addFour("=", E.getAttribute("addr"), "-",L.getAttribute("array")+"["+L.getAttribute("offset")+"]" , four);
 							symbolStack.push(S);
 						}else if(r_num==11){
 							/***
