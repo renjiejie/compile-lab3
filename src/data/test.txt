@@ -1,12 +1,16 @@
-
-    a = 1 + b;
+proc test;
+  integer a;
+  real [1]b;
+  integer [2][3]c;
+  real d;
+  record
+    integer e;
+  record_e;
+    a=1;
     b[0]=1+1;
-    c[0][0]=1;
+    a=b[0];
     if a==1
     then b=1;
-        while true
-          do b=2;
-          call proc_a(1,2,3);
 
 
 
