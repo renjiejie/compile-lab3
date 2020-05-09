@@ -2,11 +2,15 @@ package dao;
 
 import java.util.*;
 
+/**
+ * 非终结符号类
+ */
 public class Symbol {
+    //名字，属性值对，trueList，falseList，nextList
     private final String name;
     private final Map<String, String> attribute = new HashMap<>();
-    private List<Integer> falseList = new ArrayList<>();
     private List<Integer> trueList = new ArrayList<>();
+    private List<Integer> falseList = new ArrayList<>();
     private List<Integer> nextList = new ArrayList<>();
 
     public Symbol(String name) {
@@ -25,25 +29,10 @@ public class Symbol {
         return attribute.get(key);
     }
 
-    public List<Integer> makeList(int nextInstr, int i) {
-        if (i == 1)   // true List
-        {
-            trueList.add(nextInstr);
-            return new ArrayList<>(trueList);
-        } else if (i == 0) {
-            // false list
-            falseList.add(nextInstr);
-            return new ArrayList<>(falseList);
-        } else {
-            // nextList
-            nextList.add(nextInstr);
-            return new ArrayList<>(nextList);
-        }
-    }
-
     public List<Integer> getFalseList() {
         return new ArrayList<>(falseList);
     }
+
 
     public List<Integer> getTrueList() {
         return new ArrayList<>(trueList);
@@ -53,48 +42,52 @@ public class Symbol {
         return new ArrayList<>(nextList);
     }
 
-    public List<Integer> merge(List<Integer> list1, List<Integer> list2, int i) {
-        if (i == 1) {
-            // true list
-            trueList.addAll(new HashSet<>(list1));
-            trueList.addAll(new HashSet<>(list2));
-            return new ArrayList<>(trueList);
-        } else if (i == 0) {
+    /**
+     * 将一个value存入一个非终结符的list中
+     * @param value 需要存入的value
+     * @param type 当i=1时，存入truelist，i=0时，存入falselist，i为其他时，存入nextlist
+     */
+    public void makeList(int value, int type) {
+        if (type == 0) {
+            falseList.add(value);
+        } else if (type == 1) {
+            trueList.add(value);
+        } else {
+            nextList.add(value);
+        }
+    }
+
+    /**
+     * merge两个list到当前符号的list中
+     * @param list1 第一个list
+     * @param list2 第二个list
+     * @param type  当i=1时，存入truelist，i=0时，存入falselist，i为其他时，存入nextlist
+     */
+    public void merge(List<Integer> list1, List<Integer> list2, int type) {
+        if (type == 0) {
             falseList.addAll(new HashSet<>(list1));
             falseList.addAll(new HashSet<>(list2));
-            return new ArrayList<>(falseList);
+        } else if (type == 1) {
+            trueList.addAll(new HashSet<>(list1));
+            trueList.addAll(new HashSet<>(list2));
         } else {
             nextList.addAll(new HashSet<>(list1));
             nextList.addAll(new HashSet<>(list2));
-            return new ArrayList<>(nextList);
         }
     }
 
-    public List<Integer> addList(List<Integer> list, int i) {
-        if (i == 1) {
-            // true List
-            trueList.addAll(new HashSet<>(list));
-            return new ArrayList<>(trueList);
-        } else if (i == 0) {
-            // false list
+    /**
+     * 将一个list存入一个非终结符的list中
+     * @param list 需要存入的list
+     * @param type 当i=1时，存入truelist，i=0时，存入falselist，i为其他时，存入nextlist
+     */
+    public void addList(List<Integer> list, int type) {
+        if (type == 0) {
             falseList.addAll(new HashSet<>(list));
-            return new ArrayList<>(falseList);
+        } else if (type == 1) {
+            trueList.addAll(new HashSet<>(list));
         } else {
             nextList.addAll(new HashSet<>(list));
-            return new ArrayList<>(nextList);
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Symbol that = (Symbol) o;
-        return name.equals(that.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name);
     }
 }

@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+//三地址指令
 public class InterCode {
     private final List<String> interCode = new ArrayList<>();
 
@@ -22,14 +23,11 @@ public class InterCode {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-//        sb.append("(");
-        for (int i = 0; i < interCode.size(); i++) {
-            if (i != 0)
-                sb.append(" ");
-            sb.append(interCode.get(i));
+        StringBuilder stringBuilder = new StringBuilder();
+        for (String s : interCode) {
+            stringBuilder.append(" ");
+            stringBuilder.append(s);
         }
-//        sb.append(")");
-        return sb.toString();
+        return stringBuilder.toString();
     }
 }
