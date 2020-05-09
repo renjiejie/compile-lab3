@@ -1,15 +1,12 @@
-proc test;
-  integer a;
-  integer b;
-  record
-      integer e;
-  record_e;
-  if a==1
-      then b=1;
-           a=4;
-record
-      integer e;
-  record_e;
-integer c;
+
+    a = 1 + b;
+    b[0]=1+1;
+    c[0][0]=1;
+    if a==1
+    then b=1;
+        while true
+          do b=2;
+          call proc_a(1,2,3);
+
 
 
