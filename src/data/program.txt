@@ -9,7 +9,7 @@ proc test;
     a=1;
     b[0]=1+1;
     a=b[0];
-    call a (1,2,4);
+    call process (1,2,4);
     if a==1
     then while true
            do b=2;
