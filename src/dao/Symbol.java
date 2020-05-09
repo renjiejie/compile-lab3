@@ -3,7 +3,7 @@ package dao;
 import java.util.*;
 
 /**
- * 非终结符号类
+ * 符号类
  */
 public class Symbol {
     //名字，属性值对，trueList，falseList，nextList
