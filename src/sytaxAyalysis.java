@@ -7,11 +7,8 @@ import dao.Token;
 import dao.Tree;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Stack;
+import java.util.*;
+
 public class sytaxAyalysis {
 	public static void main(String[] args) throws IOException {
 		// TODO Auto-generated method stub
@@ -20,9 +17,13 @@ public class sytaxAyalysis {
 		Stack<Symbol> symbolStack = new Stack<>();
 		Stack<Tree> tree = new Stack<>();
 		Tree root = null;
+		String filePath = null;
+		System.out.println("请输入需要分析的文件相对路径");
+		Scanner sc = new Scanner(System.in);
+		filePath = sc.nextLine();
 		List<Grammar> grammar = ReadTableFile.initGrammarList("src/data/grammar.xls");  //文法
 		String[][] slrTable = ReadTableFile.readSLRTable("src/data/SLRTable.xls");		//slr表
-		List<Token> tokens = new LexicalAnalysis().lexicalAnaly(); //词法分析得出的token序列
+		List<Token> tokens = new LexicalAnalysis().lexicalAnaly(filePath); //词法分析得出的token序列
 		List<Symbol> symbols = tokenToSymbol(tokens);
 		List<InterCode> intercode = new ArrayList<InterCode>(); //中间代码, 从1号开始
 		List<String> four = new ArrayList<String>();

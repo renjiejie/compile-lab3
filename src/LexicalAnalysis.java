@@ -19,12 +19,11 @@ public class LexicalAnalysis {
 	          .split(",");
 	
 
-	public List<Token> lexicalAnaly() throws IOException {
+	public List<Token> lexicalAnaly(String filePath) throws IOException {
 		List<Token> tokens = new ArrayList<>();
 		String dfaFilePath = "src/data/DFATable.xls";
 //		String slrFilePath = "src/data/SLRTable.xls";
 //		String grammarFilePath = "src/data/grammar.xls";
-		String programFilePath = "src/data/test.txt";
 		int line = 1;
 		System.out.println("使用的DFA转换表");
 		ReadTableFile.dfaTableToString(dfaFilePath);
@@ -32,7 +31,7 @@ public class LexicalAnalysis {
 //		readTableFile.slrTableString(slrFilePath);
 //		readTableFile.grammarToString(grammarFilePath);
 		dfaTable = ReadTableFile.readDfaTable(dfaFilePath);
-		String text = ReadSourceFile.readFile(programFilePath);
+		String text = ReadSourceFile.readFile(filePath);
 	
 		int state = 0;
 		int lastState = 0;
