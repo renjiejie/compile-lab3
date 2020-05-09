@@ -1,12 +1,15 @@
 proc test;
   integer a;
+  integer a;
   real [1]b;
   integer [2][3]c;
   real d;
   record
     integer e;
   record_e;
+    a=1+b;
     a=1;
+    h=2;
     b[0]=1+1;
     a=b[0];
     if a==1

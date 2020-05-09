@@ -18,15 +18,21 @@ public class sytaxAyalysis {
 		Stack<Tree> tree = new Stack<>();
 		Tree root = null;
 		String filePath = null;
-		System.out.println("请输入需要分析的文件相对路径");
+		System.out.println("请输入需要分析的文件\t1.正确的文件（program.txt）\t2.包含错误的文件（error.txt）");
 		Scanner sc = new Scanner(System.in);
-		filePath = sc.nextLine();
+		int choose = sc.nextInt();
+		if(choose==1){
+			filePath = "src/data/program.txt";
+		}else {
+			filePath = "src/data/error.txt";
+		}
 		List<Grammar> grammar = ReadTableFile.initGrammarList("src/data/grammar.xls");  //文法
 		String[][] slrTable = ReadTableFile.readSLRTable("src/data/SLRTable.xls");		//slr表
 		List<Token> tokens = new LexicalAnalysis().lexicalAnaly(filePath); //词法分析得出的token序列
 		List<Symbol> symbols = tokenToSymbol(tokens);
 		List<InterCode> intercode = new ArrayList<InterCode>(); //中间代码, 从1号开始
 		List<String> four = new ArrayList<String>();
+		StringBuilder errorMessages = new StringBuilder();
 		List<SymbolItem> symbolItem = new ArrayList<SymbolItem>();  //符号表
 		int localVarNumber = 0;  //记录当前生成了多少个临时变量，一个 newtemp（）生成一个临时变量，
 		                         // 所以在使用临时变量在三元式中时名字不重复
@@ -204,9 +210,10 @@ public class sytaxAyalysis {
 								p = id.getAttribute("lexeme");
 							}
 							if (null==p){
-								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
-									+id.getAttribute("lexeme")+" not defined";
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+":  ["
+									+id.getAttribute("lexeme")+" not defined]";
 								System.out.println(errorMessage);
+								errorMessages.append(errorMessage).append("\n");
 							}
 							gen(p+" = "+E.getAttribute("addr"), intercode);
 							addFour("=", E.getAttribute("addr"), "_", p, four);
@@ -338,9 +345,10 @@ public class sytaxAyalysis {
 
 							D.addAttribute("nq", T.getAttribute("nq"));
 							if (lookUpSymbolItem(symbolItem, id.getAttribute("lexeme"))){
-								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
-									+id.getAttribute("lexeme")+" has been defined";
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+": ["
+									+id.getAttribute("lexeme")+" has been defined]";
 								System.out.println(errorMessage);
+								errorMessages.append(errorMessage).append("\n");
 							}else{
 								symbolItem.add(new SymbolItem(id.getAttribute("lexeme"), T.getAttribute("type"),
 									Integer.parseInt(id.getAttribute("line")), offset));
@@ -382,8 +390,9 @@ public class sytaxAyalysis {
 								addFour("+", E1.getAttribute("addr"), E2.getAttribute("addr"), "t"+localVarNumber, four);
 								localVarNumber++;
 							}else{
-								String errorMessage = "Error at line["+plus.getAttribute("line")+"]"+", calculated component mismatch";
+								String errorMessage = "Error at line["+plus.getAttribute("line")+"]"+": [calculated component mismatch]";
 								System.out.println(errorMessage);
+								errorMessages.append(errorMessage).append("\n");
 							}
 							symbolStack.push(E);
 						} else if (r_num==24){
@@ -433,9 +442,10 @@ public class sytaxAyalysis {
 								E.addAttribute("addr", id.getAttribute("lexeme"));
 							}else {
 								E.addAttribute("addr", null);
-								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
-									+id.getAttribute("lexeme")+" not defined";
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+": ["
+									+id.getAttribute("lexeme")+" not defined]";
 								System.out.println(errorMessage);
+								errorMessages.append(errorMessage).append("\n");
 							}
 							symbolStack.push(E);
 						} else if (r_num==28){
@@ -444,9 +454,10 @@ public class sytaxAyalysis {
 							Symbol E = new Symbol("E");
 							E.addAttribute("nq", String.valueOf(intercode.size()+1));
 							if(digit.getAttribute("value")==null){
-								String errorMessage = "Error at line["+digit.getAttribute("line")+"]"+", "
-									+digit.getAttribute("value")+" not defined";
+								String errorMessage = "Error at line["+digit.getAttribute("line")+"]"+": ["
+									+digit.getAttribute("value")+" not defined]";
 								System.out.println(errorMessage);
+								errorMessages.append(errorMessage).append("\n");
 							}
 							E.addAttribute("addr", digit.getAttribute("value"));
 							symbolStack.push(E);
@@ -511,13 +522,15 @@ public class sytaxAyalysis {
 							}
 
 							if (symbolItem1==null){
-								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
-									+id.getAttribute("lexeme")+" not defined";
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+": ["
+									+id.getAttribute("lexeme")+" not defined]";
 								System.out.println(errorMessage);
+								errorMessages.append(errorMessage).append("\n");
 							} else if (!symbolItem1.getType().contains("]")) {
-								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+", "
-									+id.getAttribute("lexeme")+" type error";
+								String errorMessage = "Error at line["+id.getAttribute("line")+"]"+": ["
+									+id.getAttribute("lexeme")+" type error]";
 								System.out.println(errorMessage);
+								errorMessages.append(errorMessage).append("\n");
 							}else{
 								L.addAttribute("array", symbolItem1.getIdentifier());
 								L.addAttribute("type", getArrayELemType(symbolItem1.getType()));
@@ -605,6 +618,8 @@ public class sytaxAyalysis {
 					System.out.println(c+": "+s);
 					++c;
 				}
+				System.out.println("\n错误信息");
+				System.out.println(errorMessages);
 				System.exit(0);
 			}
 			
