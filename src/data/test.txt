@@ -7,8 +7,9 @@ proc test;
   if a==1
       then b=1;
            a=4;
-
-
-
+record
+      integer e;
+  record_e;
+integer c;
 
 

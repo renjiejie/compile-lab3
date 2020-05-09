@@ -50,7 +50,7 @@ public class sytaxAyalysis {
 				localT = symbolStack.peek().getAttribute("type");
 				localW = symbolStack.peek().getAttribute("width");
 			}
-
+			
 
 			System.out.println(action);
 			System.out.println(stateStack.toString());
@@ -86,6 +86,7 @@ public class sytaxAyalysis {
 						str = t.getKey()+str;
 					}
 					if(str.equals(rightStr)) {
+						int flage=0;
 						Token t1 = new Token(e.getLeft(), null);
 						tokenStack.add(t1);
 						int i = getTokenIndex(t1);
@@ -93,7 +94,6 @@ public class sytaxAyalysis {
 						Tree parent = new Tree(t1);
 						parent.addChild(trees);
 						tree.add(parent);
-					
 						//语义操作
 						int r_num = Integer.parseInt(action.substring(1));
 						if (r_num ==0){ //P->D {P.nq = D.nq}
@@ -543,6 +543,7 @@ public class sytaxAyalysis {
 					stateStack.add(Integer.parseInt(slrTable[stateStack.peek()][i])-1);
 				}
 				
+				
 			}
 			else if(action.substring(0,1).equals("e")) {
 				System.out.println("erro");
@@ -562,6 +563,7 @@ public class sytaxAyalysis {
 				}
 				System.exit(0);
 			}
+			
 		}
 	}
 	/**
