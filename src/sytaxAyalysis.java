@@ -374,6 +374,7 @@ public class sytaxAyalysis {
 							symbolStack.pop();
 							Symbol T = new Symbol("T");
 							T.addAttribute("nq", D.getAttribute("nq"));
+							T.addAttribute("type", "record");
 							symbolStack.push(T);
 						}else if (r_num==23){
 							// E->E + E {E.nq = E1.nq; E.addr=newtemp();gen(E.addr=E1.addr+E2.addr);}
