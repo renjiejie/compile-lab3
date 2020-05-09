@@ -167,7 +167,7 @@ public class sytaxAyalysis {
 							gen("if "+E1.getAttribute("addr")+relop.getAttribute("lexeme")+E2.getAttribute("addr")+" goto ", intercode);
 							four.add("("+"j"+relop.getAttribute("lexeme")+","+E1.getAttribute("addr")+","+E2.getAttribute("addr"));
 							gen("goto ", intercode);
-							four.add("(j,-,-,");
+							four.add("(j,_,_,");
 							symbolStack.push(B);
 						}else if(r_num==7){
 							//B->true{B.nq = nextquad; B.truelist=makelist(nextquad);gen(‘goto_’);}
@@ -177,7 +177,7 @@ public class sytaxAyalysis {
 							B.addAttribute("nq", String.valueOf(intercode.size()+1));
 							B.makeList(intercode.size()+1, 1);
 							gen("goto ", intercode);
-							four.add("(j,-,-,");
+							four.add("(j,_,_,");
 							symbolStack.push(B);
 						}else if(r_num==8){
 							//B->false {B.nq = nextquad; B.falselist=makelist(nextquad);gen(‘goto’);}
@@ -187,7 +187,7 @@ public class sytaxAyalysis {
 							B.addAttribute("nq", String.valueOf(intercode.size()+1));
 							B.makeList(intercode.size()+1, 0);
 							gen("goto ", intercode);
-							four.add("(j,-,-,");
+							four.add("(j,_,_,");
 							symbolStack.push(B);
 						}else if(r_num==9){
 							// S->id = E ; {S.nq = E.nq; p=lookup(id.lexeme);if p== null then error;gen(p’=’E.addr);}
@@ -208,7 +208,7 @@ public class sytaxAyalysis {
 								System.out.println(errorMessage);
 							}
 							gen(p+" = "+E.getAttribute("addr"), intercode);
-							addFour("=", E.getAttribute("addr"), "-", p, four);
+							addFour("=", E.getAttribute("addr"), "_", p, four);
 							symbolStack.push(S);
 						}else if(r_num==10){
 							//S->L = E ; {S.nq = L.nq; gen(L.array[L.offset]=E.addr);}
@@ -220,7 +220,7 @@ public class sytaxAyalysis {
 							S.addAttribute("nq", L.getAttribute("nq"));
 							gen(L.getAttribute("array")+"["+L.getAttribute("offset")+"]"+"="+E.getAttribute("addr"),
 								intercode);
-							addFour("=", E.getAttribute("addr"), "-",L.getAttribute("array")+"["+L.getAttribute("offset")+"]" , four);
+							addFour("=", E.getAttribute("addr"), "_",L.getAttribute("array")+"["+L.getAttribute("offset")+"]" , four);
 							symbolStack.push(S);
 						}else if(r_num==11){
 							/***
@@ -241,10 +241,10 @@ public class sytaxAyalysis {
 							int n = 0;
 							for(n=0;n<size;++n) {
 								gen("param "+q.poll(), intercode);
-								addFour("param","-", "-",q.poll()+"" , four);
+								addFour("param","_", "_",q.poll()+"" , four);
 							}
 							gen("call "+ id.getAttribute("lexeme")+","+n,intercode);
-							addFour("call", n+"", "-", id.getAttribute("lexeme"), four);
+							addFour("call", n+"", "_", id.getAttribute("lexeme"), four);
 							symbolStack.push(S);
 						}else if(r_num==12){
 							// S->if B then S1 {S.nq = B.nq; backpatch(B.truelist,M.quad);S.nextlist=merge(B.falselist,S1.nextlist);}
@@ -277,7 +277,7 @@ public class sytaxAyalysis {
 							backpatch(B.getFalseList(), intercode.size()+1, intercode,four);
 							S.addList(B.getFalseList(), 2);  // S.nextlist=S2.nextlist;
 							gen("goto "+B.getAttribute("nq"), intercode);
-							four.add("(j,-,-,"+B.getAttribute("nq")+")");
+							four.add("(j,_,_,"+B.getAttribute("nq")+")");
 							symbolStack.push(S);
 						}else if(r_num==15){
 							//S->S1 S2{S.nq = S1.nq; backpatch(S1.nextlist,S2.nq); S.nextlist=S2.nextlist;}
@@ -409,7 +409,7 @@ public class sytaxAyalysis {
 							E.addAttribute("nq", E1.getAttribute("nq"));
 							E.addAttribute("addr", String.valueOf(-Integer.parseInt(E1.getAttribute("addr"))));
 							gen("t"+localVarNumber+" = uminus "+E1.getAttribute("addr"), intercode);
-							addFour("uminus",E1.getAttribute("addr"), "-", "t"+localVarNumber, four);
+							addFour("uminus",E1.getAttribute("addr"), "_", "t"+localVarNumber, four);
 							localVarNumber++;
 							symbolStack.push(E);
 						} else if (r_num==26){
@@ -456,7 +456,7 @@ public class sytaxAyalysis {
 							E.addAttribute("nq", L.getAttribute("nq"));
 							E.addAttribute("addr", L.getAttribute("array")+"["+L.getAttribute("offset")+"]");
 							gen("t"+localVarNumber+"="+L.getAttribute("array")+"["+L.getAttribute("offset")+"]", intercode);
-							addFour("=", L.getAttribute("array")+"["+L.getAttribute("offset")+"]", "-", "t"+localVarNumber, four);
+							addFour("=", L.getAttribute("array")+"["+L.getAttribute("offset")+"]", "_", "t"+localVarNumber, four);
 							localVarNumber++;
 							symbolStack.push(E);
 						} else if(r_num==30){
@@ -588,15 +588,17 @@ public class sytaxAyalysis {
 				System.out.println("完成");
 				root.setNodeDepth(0);
 				new Order().preOrder(root);
+				System.out.println("\n字母表");
 				for(SymbolItem item :symbolItem){
 					System.out.println(item);
 				}
+				System.out.println("\n三地址指令");
 				int c=1;
 				for(InterCode inco: intercode){
 					System.out.println(c+": "+inco);
 					++c;
 				}
-				System.out.println("\n");
+				System.out.println("\n四元式指令");
 				c=1;
 				for(String s:four) {
 					System.out.println(c+": "+s);
