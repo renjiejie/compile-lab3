@@ -174,7 +174,7 @@ public class sytaxAyalysis {
 							gen("if "+E1.getAttribute("addr")+relop.getAttribute("lexeme")+E2.getAttribute("addr")+" goto ", intercode);
 							four.add("("+"j"+relop.getAttribute("lexeme")+","+E1.getAttribute("addr")+","+E2.getAttribute("addr"));
 							gen("goto ", intercode);
-							four.add("(j,_,_,");
+							four.add("(j,_,_");
 							symbolStack.push(B);
 						}else if(r_num==7){
 							//B->true{B.nq = nextquad; B.truelist=makelist(nextquad);gen(‘goto_’);}
@@ -184,7 +184,7 @@ public class sytaxAyalysis {
 							B.addAttribute("nq", String.valueOf(intercode.size()+1));
 							B.makeList(intercode.size()+1, 1);
 							gen("goto ", intercode);
-							four.add("(j,_,_,");
+							four.add("(j,_,_");
 							symbolStack.push(B);
 						}else if(r_num==8){
 							//B->false {B.nq = nextquad; B.falselist=makelist(nextquad);gen(‘goto’);}
@@ -194,7 +194,7 @@ public class sytaxAyalysis {
 							B.addAttribute("nq", String.valueOf(intercode.size()+1));
 							B.makeList(intercode.size()+1, 0);
 							gen("goto ", intercode);
-							four.add("(j,_,_,");
+							four.add("(j,_,_");
 							symbolStack.push(B);
 						}else if(r_num==9){
 							// S->id = E ; {S.nq = E.nq; p=lookup(id.lexeme);if p== null then error;gen(p’=’E.addr);}
@@ -248,8 +248,9 @@ public class sytaxAyalysis {
 							int size = q.size();
 							int n = 0;
 							for(n=0;n<size;++n) {
-								gen("param "+q.poll(), intercode);
-								addFour("param","_", "_",q.poll()+"" , four);
+								int temp = q.poll();
+								gen("param "+temp, intercode);
+								addFour("param","_", "_",temp+"" , four);
 							}
 							gen("call "+ id.getAttribute("lexeme")+","+n,intercode);
 							addFour("call", n+"", "_", id.getAttribute("lexeme"), four);
@@ -285,7 +286,7 @@ public class sytaxAyalysis {
 							backpatch(B.getFalseList(), intercode.size()+1, intercode,four);
 							S.addList(B.getFalseList(), 2);  // S.nextlist=S2.nextlist;
 							gen("goto "+B.getAttribute("nq"), intercode);
-							four.add("(j,_,_,"+B.getAttribute("nq")+")");
+							four.add("(j,_,_"+B.getAttribute("nq")+")");
 							symbolStack.push(S);
 						}else if(r_num==15){
 							//S->S1 S2{S.nq = S1.nq; backpatch(S1.nextlist,S2.nq); S.nextlist=S2.nextlist;}
@@ -369,7 +370,7 @@ public class sytaxAyalysis {
 							T.addAttribute("width", C.getAttribute("width"));
 							symbolStack.push(T);
 						}else if (r_num==22){
-							// T->record D{T.nq = D.nq;}
+							// T->record D{T.nq = D.nq;T.type = record}
 							Symbol D = symbolStack.pop();
 							symbolStack.pop();
 							Symbol T = new Symbol("T");
